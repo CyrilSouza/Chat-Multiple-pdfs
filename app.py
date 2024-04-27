@@ -1,5 +1,4 @@
 import streamlit as st
-pip install torch transformers
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
@@ -10,6 +9,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
+from transformers import pipeline
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -31,11 +31,27 @@ def get_text_chunks(text):
     return chunks
 
 
-def get_vectorstore(text_chunks):
+#def get_vectorstore(text_chunks):
    # embeddings = OpenAIEmbeddings()
-    embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
-    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
-    return vectorstore
+    
+    #embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    #vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    #return vectorstore
+def get_vectorstore(text_chunks):
+    # Load the pipeline for sentence similarity
+    similarity_pipe = pipeline("sentence-similarity", model="hkunlp/instructor-xl")
+
+    # Initialize an empty list to store the embeddings
+    embeddings = []
+
+    # Iterate over text chunks and get embeddings
+    for chunk in text_chunks:
+        # Calculate embeddings for each chunk
+        chunk_embedding = similarity_pipe(chunk, text_chunks)["scores"]
+        embeddings.append(chunk_embedding)
+
+    # Return the embeddings
+    return embeddings
 
 
 def get_conversation_chain(vectorstore):
